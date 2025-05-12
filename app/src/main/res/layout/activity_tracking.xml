@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/root"
+    android:orientation="vertical"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <!-- 1) Horní 80 %: MapView -->
+    <org.osmdroid.views.MapView
+        android:id="@+id/mapview"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:clickable="true"
+        android:focusable="true" />
+
+    <!-- 2) Dolní panel -->
+    <LinearLayout
+        android:id="@+id/bottomPanel"
+        android:orientation="vertical"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#FFFFFFFF"
+        android:padding="16dp">
+
+        <!-- Jméno koně -->
+        <TextView
+            android:id="@+id/tvHorseName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Kůň: –"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="#000000" />
+		
+		<!-- Doba jízdy -->
+		<TextView
+			android:id="@+id/tvDuration"
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:text="Doba: 00:00"
+			android:textSize="14sp"
+			android:textColor="#000000"
+			android:layout_marginTop="4dp" />
+
+        <!-- Aktuální chod -->
+        <TextView
+            android:id="@+id/tvCurrentGait"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Chod: –"
+            android:textSize="14sp"
+            android:textColor="#000000"
+            android:layout_marginTop="8dp" />
+
+        <!-- Barevný proužek chodů -->
+        <LinearLayout
+            android:id="@+id/gaitBarContainer"
+            android:layout_width="match_parent"
+            android:layout_height="8dp"
+            android:orientation="horizontal"
+            android:layout_marginTop="4dp"
+            android:background="#FFCCCCCC">
+
+            <View
+                android:id="@+id/barStand"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="#888888" />
+
+            <View
+                android:id="@+id/barWalk"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="#006400" />
+
+            <View
+                android:id="@+id/barTrot"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="#CCCC00" />
+
+            <View
+                android:id="@+id/barGallop"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="#8B0000" />
+        </LinearLayout>
+
+        <!-- Textové statistiky -->
+        <TextView
+            android:id="@+id/tvStats"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Body: 0  Vzdálenost: 0.0 m"
+            android:textSize="14sp"
+            android:textColor="#000000"
+            android:layout_marginTop="8dp" />
+
+        <!-- Tlačítko ukončit -->
+        <Button
+            android:id="@+id/btnStop"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Ukončit"
+            android:layout_marginTop="12dp" />
+
+    </LinearLayout>
+</LinearLayout>

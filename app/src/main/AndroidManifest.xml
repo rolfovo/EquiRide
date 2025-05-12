@@ -1,0 +1,23 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.example.equiride">
+
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.INTERNET"/>
+
+    <application
+        android:allowBackup="true"
+        android:theme="@style/Theme.EquiRide"
+        android:label="EquiRide">
+        <activity android:name=".TrackingActivity"/>
+        <activity android:name=".StatsActivity"/>
+        <activity android:name=".AddHorseActivity"/>
+        <activity android:name=".HorseListActivity"/>
+        <activity android:name=".MainActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>

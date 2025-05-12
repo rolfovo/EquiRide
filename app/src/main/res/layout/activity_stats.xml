@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="16dp">
+
+  <LinearLayout
+      android:orientation="vertical"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content">
+
+      <!-- Jméno koně -->
+      <TextView
+          android:id="@+id/tvHorseName"
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:text="Jméno koně"
+          android:textSize="20sp"
+          android:textStyle="bold"
+          android:layout_marginBottom="8dp"/>
+
+      <!-- Celková vzdálenost -->
+      <TextView
+          android:id="@+id/tvTotalDistance"
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:text="Ujetá vzdálenost: --"
+          android:layout_marginBottom="4dp"/>
+
+      <!-- Průměrné metry na chod -->
+      <TextView
+          android:id="@+id/tvAvgSpeeds"
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:text="Průměrné rychlosti: --"
+          android:layout_marginBottom="16dp"/>
+
+      <!-- Pie chart -->
+      <com.example.equiride.ui.PieChartView
+          android:id="@+id/pieChart"
+          android:layout_width="match_parent"
+          android:layout_height="200dp"
+          android:layout_marginBottom="16dp"/>
+
+      <!-- Historie jízd -->
+      <TextView
+          android:id="@+id/tvHistoryTitle"
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:text="Historie jízd"
+          android:textSize="18sp"
+          android:textStyle="bold"
+          android:layout_marginBottom="8dp"/>
+
+      <TextView
+          android:id="@+id/tvHistory"
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:text="Zde bude historie…"
+          android:layout_marginBottom="16dp"/>
+
+      <!-- RESET tlačítko -->
+      <Button
+          android:id="@+id/btnResetStats"
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:text="Reset statistik"
+          android:layout_marginBottom="16dp"/>
+
+      <!-- Zpráva, když není nic -->
+      <TextView
+          android:id="@+id/tvNoData"
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:text=""
+          android:textStyle="italic"
+          android:visibility="gone"/>
+  </LinearLayout>
+</ScrollView>
