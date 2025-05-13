@@ -1,79 +1,46 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:padding="16dp">
 
-  <LinearLayout
-      android:orientation="vertical"
-      android:layout_width="match_parent"
-      android:layout_height="wrap_content">
+    <!-- 1) Graf poměrů chodu -->
+    <com.github.mikephil.charting.charts.PieChart
+        android:id="@+id/pieChart"
+        android:layout_width="match_parent"
+        android:layout_height="200dp"
+        android:layout_marginBottom="16dp"/>
 
-      <!-- Jméno koně -->
-      <TextView
-          android:id="@+id/tvHorseName"
-          android:layout_width="match_parent"
-          android:layout_height="wrap_content"
-          android:text="Jméno koně"
-          android:textSize="20sp"
-          android:textStyle="bold"
-          android:layout_marginBottom="8dp"/>
+    <!-- 2) Statistické souhrny -->
+    <TextView
+        android:id="@+id/tvTotalRides"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Počet jízd: 0"
+        android:textSize="14sp" />
 
-      <!-- Celková vzdálenost -->
-      <TextView
-          android:id="@+id/tvTotalDistance"
-          android:layout_width="match_parent"
-          android:layout_height="wrap_content"
-          android:text="Ujetá vzdálenost: --"
-          android:layout_marginBottom="4dp"/>
+    <TextView
+        android:id="@+id/tvTotalDist"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Celkem: 0.0 m"
+        android:textSize="14sp"
+        android:layout_marginTop="4dp"/>
 
-      <!-- Průměrné metry na chod -->
-      <TextView
-          android:id="@+id/tvAvgSpeeds"
-          android:layout_width="match_parent"
-          android:layout_height="wrap_content"
-          android:text="Průměrné rychlosti: --"
-          android:layout_marginBottom="16dp"/>
+    <!-- 3) Seznam posledních jízd -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvRides"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:layout_marginTop="16dp"/>
 
-      <!-- Pie chart -->
-      <com.example.equiride.ui.PieChartView
-          android:id="@+id/pieChart"
-          android:layout_width="match_parent"
-          android:layout_height="200dp"
-          android:layout_marginBottom="16dp"/>
-
-      <!-- Historie jízd -->
-      <TextView
-          android:id="@+id/tvHistoryTitle"
-          android:layout_width="match_parent"
-          android:layout_height="wrap_content"
-          android:text="Historie jízd"
-          android:textSize="18sp"
-          android:textStyle="bold"
-          android:layout_marginBottom="8dp"/>
-
-      <TextView
-          android:id="@+id/tvHistory"
-          android:layout_width="match_parent"
-          android:layout_height="wrap_content"
-          android:text="Zde bude historie…"
-          android:layout_marginBottom="16dp"/>
-
-      <!-- RESET tlačítko -->
-      <Button
-          android:id="@+id/btnResetStats"
-          android:layout_width="match_parent"
-          android:layout_height="wrap_content"
-          android:text="Reset statistik"
-          android:layout_marginBottom="16dp"/>
-
-      <!-- Zpráva, když není nic -->
-      <TextView
-          android:id="@+id/tvNoData"
-          android:layout_width="match_parent"
-          android:layout_height="wrap_content"
-          android:text=""
-          android:textStyle="italic"
-          android:visibility="gone"/>
-  </LinearLayout>
-</ScrollView>
+    <!-- 4) Reset -->
+    <Button
+        android:id="@+id/btnReset"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Reset"
+        android:layout_marginTop="8dp"/>
+</LinearLayout>

@@ -11,22 +11,25 @@ class HorseListActivity : AppCompatActivity() {
     private val db by lazy { AppDatabase.get(this) }
     private val adapter = HorseAdapter(mutableListOf()) { horse, action ->
         when (action) {
-            HorseAdapter.Action.DELETE -> db.horseDao().delete(horse)
+            HorseAdapter.Action.DELETE ->
+                db.horseDao().delete(horse)
+
             HorseAdapter.Action.STATS -> {
-                val i = Intent(this, StatsActivity::class.java)
-                    .putExtra("horseId", horse.id)
-                startActivity(i)
+                Intent(this, StatsActivity::class.java).apply {
+                    putExtra("horseId", horse.id)
+                }.also { startActivity(it) }
             }
+
             HorseAdapter.Action.SELECT -> {
                 setResult(
                     RESULT_OK,
-                    Intent()
-                        .putExtra("horseId", horse.id)
-                        .putExtra("horseName", horse.name)
+                    Intent().apply {
+                        putExtra("horseId", horse.id)
+                        putExtra("horseName", horse.name)
+                    }
                 )
                 finish()
             }
-            else -> Unit  // ← tohle musíme doplnit
         }
     }
 
@@ -34,11 +37,12 @@ class HorseListActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityHorseListBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
         binding.recyclerView.layoutManager = LinearLayoutManager(this)
         binding.recyclerView.adapter = adapter
 
-        db.horseDao().getAll().observe(this) {
-            adapter.updateList(it)
+        db.horseDao().getAll().observe(this) { horses ->
+            adapter.updateList(horses)
         }
 
         binding.btnAdd.setOnClickListener {

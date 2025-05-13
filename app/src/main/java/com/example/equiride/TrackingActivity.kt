@@ -93,7 +93,7 @@ class TrackingActivity : AppCompatActivity() {
             override fun onLocationResult(result: LocationResult) {
                 result.lastLocation?.let { loc ->
                     fixCount++
-                    if (!kalmanInited && fixCount >= 3) {
+                    if (!kalmanInited && fixCount >= 2) {
                         latFilter.init(loc.latitude)
                         lonFilter.init(loc.longitude)
                         kalmanInited = true

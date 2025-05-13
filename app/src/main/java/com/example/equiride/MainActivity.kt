@@ -2,15 +2,29 @@ package com.example.equiride
 
 import android.content.Intent
 import android.os.Bundle
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import com.example.equiride.databinding.ActivityMainBinding
 import org.osmdroid.config.Configuration
-import org.osmdroid.views.MapView
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
-    private var selectedHorseId: Long? = null
+    private var selectedHorseId: Long = 0L
+
+    // nový launcher pro výběr koně
+    private val selectHorseLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == RESULT_OK) {
+            result.data?.let { data ->
+                selectedHorseId = data.getLongExtra("horseId", 0L)
+                val name = data.getStringExtra("horseName") ?: "?"
+                binding.btnSelectHorse.text = name
+                binding.btnStartRide.isEnabled = true
+            }
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -28,21 +42,18 @@ class MainActivity : AppCompatActivity() {
             controller.setCenter(mapCenter)
         }
 
-        // Vybrat koně
+        // Vybrat koně -> nový launcher
         binding.btnSelectHorse.setOnClickListener {
-            startActivityForResult(
-                Intent(this, HorseListActivity::class.java),
-                REQUEST_SELECT_HORSE
+            selectHorseLauncher.launch(
+                Intent(this, HorseListActivity::class.java)
             )
         }
 
         // Spustit jízdu
         binding.btnStartRide.setOnClickListener {
-            selectedHorseId?.let { id ->
-                startActivity(
-                    Intent(this, TrackingActivity::class.java)
-                        .putExtra("horseId", id)
-                )
+            Intent(this, TrackingActivity::class.java).also {
+                it.putExtra("horseId", selectedHorseId)
+                startActivity(it)
             }
         }
     }
@@ -56,20 +67,5 @@ class MainActivity : AppCompatActivity() {
     override fun onPause() {
         super.onPause()
         binding.mapview.onPause()
-    }
-
-    // Výsledek výběru koně
-    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        super.onActivityResult(requestCode, resultCode, data)
-        if (requestCode == REQUEST_SELECT_HORSE && resultCode == RESULT_OK) {
-            selectedHorseId = data?.getLongExtra("horseId", 0L)
-            val name = data?.getStringExtra("horseName") ?: "?"
-            binding.btnSelectHorse.text = name
-            binding.btnStartRide.isEnabled = true
-        }
-    }
-
-    companion object {
-        private const val REQUEST_SELECT_HORSE = 1001
     }
 }

@@ -1,75 +1,81 @@
 package com.example.equiride
 
+import android.graphics.Color
 import android.os.Bundle
-import android.view.View
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.lifecycle.Observer
+import androidx.lifecycle.observe
+import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.equiride.databinding.ActivityStatsBinding
-import org.json.JSONObject
+import com.github.mikephil.charting.data.PieData
+import com.github.mikephil.charting.data.PieDataSet
+import com.github.mikephil.charting.data.PieEntry
+import java.text.SimpleDateFormat
+import java.util.*
 
 class StatsActivity : AppCompatActivity() {
-
     private lateinit var binding: ActivityStatsBinding
-    private val db by lazy { AppDatabase.get(this) }
-    private var horseId: Long = 0L
+    private lateinit var adapter: RideListAdapter
+    private val dateFmt = SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault())
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityStatsBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        horseId = intent.getLongExtra("horseId", 0L)
-        db.horseDao().getById(horseId)?.let {
-            binding.tvHorseName.text = it.name
-        }
+        // RecyclerView
+        adapter = RideListAdapter()
+        binding.rvRides.layoutManager = LinearLayoutManager(this)
+        binding.rvRides.adapter = adapter
 
-        // Pozorujeme změny v datech
-        db.rideDao().getByHorse(horseId).observe(this, Observer { rides ->
-            if (rides.isEmpty()) {
-                binding.tvNoData.visibility = View.VISIBLE
-                binding.tvNoData.text = "Zatím žádné jízdy."
-                binding.tvTotalDistance.text = ""
-                binding.tvAvgSpeeds.text = ""
-                binding.pieChart.clearData()
-                binding.tvHistory.text = ""
-            } else {
-                binding.tvNoData.visibility = View.GONE
+        val horseId = intent.getLongExtra("horseId", 0L)
+        binding.btnReset.setOnClickListener { resetStats(horseId) }
 
-                val totalDistance = rides.sumOf { it.distance }
-                binding.tvTotalDistance.text =
-                    "Ujetá vzdálenost: %.1f m".format(totalDistance)
-
-                val avgWalk   = rides.map { it.walkPortion * it.distance }.sum() / totalDistance
-                val avgTrot   = rides.map { it.trotPortion * it.distance }.sum() / totalDistance
-                val avgGallop = rides.map { it.gallopPortion * it.distance }.sum() / totalDistance
-                binding.tvAvgSpeeds.text =
-                    "Průměr: krok %.1f m, klus %.1f m, cval %.1f m"
-                        .format(avgWalk, avgTrot, avgGallop)
-
-                val pieData = mapOf(
-                    "Krok"  to rides.sumOf { it.walkPortion },
-                    "Klus"  to rides.sumOf { it.trotPortion },
-                    "Cval"  to rides.sumOf { it.gallopPortion }
-                )
-                binding.pieChart.setData(pieData)
-
-                val historyText = rides.joinToString("\n") { ride ->
-                    val ts = JSONObject(ride.geoJson).optLong("timestamp", ride.timestamp)
-                    val date = java.text.SimpleDateFormat(
-                        "yyyy-MM-dd HH:mm",
-                        java.util.Locale.getDefault()
-                    ).format(java.util.Date(ts))
-                    "• $date: %.1f m".format(ride.distance)
-                }
-                binding.tvHistory.text = historyText
+        // Pozorujeme LiveData
+        AppDatabase.get(this)
+            .rideDao()
+            .getByHorse(horseId)
+            .observe(this) { rides ->
+                showSummary(rides)
+                adapter.submitList(rides.reversed()) // nejnovější nahoře
             }
-        })
+    }
 
-        // Reset historie
-        binding.btnResetStats.setOnClickListener {
-            db.rideDao().deleteByHorse(horseId)
-            Toast.makeText(this, "Statistiky smazány", Toast.LENGTH_SHORT).show()
+    private fun showSummary(rides: List<Ride>) {
+        // celková délka, počet
+        val totalDist = rides.sumOf { it.distance }
+        binding.tvTotalRides.text = "Počet jízd: ${rides.size}"
+        binding.tvTotalDist.text = "Celkem: ${"%.1f".format(totalDist)} m"
+
+        // průměrné podíly
+        val cnt = rides.size.takeIf { it>0 } ?: 1
+        val w = rides.sumOf { it.walkPortion }/cnt *100
+        val t = rides.sumOf { it.trotPortion }/cnt *100
+        val g = rides.sumOf { it.gallopPortion }/cnt *100
+
+        // PieChart
+        val entries = listOf(
+            PieEntry(w.toFloat(), "Krok"),
+            PieEntry(t.toFloat(), "Klus"),
+            PieEntry(g.toFloat(), "Cval")
+        )
+        val ds = PieDataSet(entries, "").apply {
+            colors = listOf(Color.parseColor("#006400"), Color.parseColor("#CCCC00"), Color.parseColor("#8B0000"))
+            valueTextSize = 12f
+            valueTextColor = Color.WHITE
+            sliceSpace = 2f
         }
+        binding.pieChart.apply {
+            data = PieData(ds)
+            description.isEnabled = false
+            legend.isEnabled = true
+            setUsePercentValues(true)
+            invalidate()
+        }
+    }
+
+    private fun resetStats(horseId: Long) {
+        Thread {
+            AppDatabase.get(this).rideDao().deleteByHorse(horseId)
+        }.start()
     }
 }
