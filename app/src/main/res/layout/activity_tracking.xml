@@ -6,26 +6,31 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <!-- MapView zabere všechen zbytek -->
-    <org.osmdroid.views.MapView
-        android:id="@+id/mapview"
+    <!-- 1) Oblast mapy + FAB -->
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1"
-        android:clickable="true"
-        android:focusable="true" />
+        android:layout_weight="1">
 
-    <!-- Centrovací FAB -->
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/fabCenter"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="end|top"
-        android:layout_margin="16dp"
-        app:srcCompat="@android:drawable/ic_menu_mylocation"
-        android:contentDescription="Centrovat mapu" />
+        <org.osmdroid.views.MapView
+            android:id="@+id/mapview"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clickable="true"
+            android:focusable="true" />
 
-    <!-- Dolní panel se statistikami -->
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/fabCenter"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="end|top"
+            android:layout_margin="16dp"
+            app:srcCompat="@android:drawable/ic_menu_mylocation"
+            android:contentDescription="Centrovat mapu" />
+
+    </FrameLayout>
+
+    <!-- 2) Dolní panel se statistikami -->
     <LinearLayout
         android:id="@+id/bottomPanel"
         android:orientation="vertical"
@@ -74,7 +79,7 @@
             android:layout_marginTop="2dp"
             android:textColor="#000000" />
 
-		<!-- Aktuální chod -->
+        <!-- Aktuální chod -->
         <TextView
             android:id="@+id/tvCurrentGait"
             android:layout_width="match_parent"
@@ -139,5 +144,6 @@
             android:layout_height="wrap_content"
             android:text="Ukončit"
             android:layout_marginTop="12dp" />
+
     </LinearLayout>
 </LinearLayout>
