@@ -36,13 +36,14 @@ public final class AppDatabase_Impl extends AppDatabase {
 
   @Override
   protected SupportSQLiteOpenHelper createOpenHelper(DatabaseConfiguration configuration) {
-    final SupportSQLiteOpenHelper.Callback _openCallback = new RoomOpenHelper(configuration, new RoomOpenHelper.Delegate(1) {
+    final SupportSQLiteOpenHelper.Callback _openCallback = new RoomOpenHelper(configuration, new RoomOpenHelper.Delegate(2) {
       @Override
       public void createAllTables(SupportSQLiteDatabase _db) {
         _db.execSQL("CREATE TABLE IF NOT EXISTS `horses` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `walkSpeed` REAL NOT NULL, `trotSpeed` REAL NOT NULL, `gallopSpeed` REAL NOT NULL)");
         _db.execSQL("CREATE TABLE IF NOT EXISTS `rides` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `horseId` INTEGER NOT NULL, `timestamp` INTEGER NOT NULL, `distance` REAL NOT NULL, `walkPortion` REAL NOT NULL, `trotPortion` REAL NOT NULL, `gallopPortion` REAL NOT NULL, `geoJson` TEXT NOT NULL, FOREIGN KEY(`horseId`) REFERENCES `horses`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )");
+        _db.execSQL("CREATE INDEX IF NOT EXISTS `index_rides_horseId` ON `rides` (`horseId`)");
         _db.execSQL("CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)");
-        _db.execSQL("INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'b78986db727dc6bc0102cbedbb116e60')");
+        _db.execSQL("INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '10bb24c42da052215e6be101bf38f388')");
       }
 
       @Override
@@ -114,7 +115,8 @@ public final class AppDatabase_Impl extends AppDatabase {
         _columnsRides.put("geoJson", new TableInfo.Column("geoJson", "TEXT", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
         final HashSet<TableInfo.ForeignKey> _foreignKeysRides = new HashSet<TableInfo.ForeignKey>(1);
         _foreignKeysRides.add(new TableInfo.ForeignKey("horses", "CASCADE", "NO ACTION",Arrays.asList("horseId"), Arrays.asList("id")));
-        final HashSet<TableInfo.Index> _indicesRides = new HashSet<TableInfo.Index>(0);
+        final HashSet<TableInfo.Index> _indicesRides = new HashSet<TableInfo.Index>(1);
+        _indicesRides.add(new TableInfo.Index("index_rides_horseId", false, Arrays.asList("horseId"), Arrays.asList("ASC")));
         final TableInfo _infoRides = new TableInfo("rides", _columnsRides, _foreignKeysRides, _indicesRides);
         final TableInfo _existingRides = TableInfo.read(_db, "rides");
         if (! _infoRides.equals(_existingRides)) {
@@ -124,7 +126,7 @@ public final class AppDatabase_Impl extends AppDatabase {
         }
         return new RoomOpenHelper.ValidationResult(true, null);
       }
-    }, "b78986db727dc6bc0102cbedbb116e60", "dd9c11bf9c817a4a301b8dcd57c39930");
+    }, "10bb24c42da052215e6be101bf38f388", "37e07296cb978dd7b30806f25b4c3eb5");
     final SupportSQLiteOpenHelper.Configuration _sqliteConfig = SupportSQLiteOpenHelper.Configuration.builder(configuration.context)
         .name(configuration.name)
         .callback(_openCallback)

@@ -11,6 +11,9 @@ interface HorseDao {
     @Query("SELECT * FROM horses WHERE id = :id")
     fun getById(id: Long): Horse?
 
-    @Insert fun insert(h: Horse): Long
-    @Delete fun delete(h: Horse)
+    @Insert
+    fun insert(h: Horse): Long
+
+    @Delete
+    fun delete(h: Horse)
 }
