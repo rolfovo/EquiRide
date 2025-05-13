@@ -5,6 +5,8 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.location.Location
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.widget.LinearLayout
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -23,15 +25,11 @@ import com.google.android.gms.location.*
 
 class TrackingActivity : AppCompatActivity() {
 
-    /**
-     * Jednoduchý Kalmanův filtr pro 1D (latitude nebo longitude).
-     */
+    /** Simple Kalman filter for 1D (latitude or longitude) */
     class SimpleKalmanFilter(var q: Double, var r: Double) {
         private var x = 0.0
         private var p = 1.0
-        fun init(value: Double) {
-            x = value; p = 1.0
-        }
+        fun init(value: Double) { x = value; p = 1.0 }
         fun filter(meas: Double): Double {
             p += q
             val k = p / (p + r)
@@ -51,22 +49,30 @@ class TrackingActivity : AppCompatActivity() {
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private lateinit var locationCallback: LocationCallback
 
-    // Kalmanovy filtry
+    // Kalman filters
     private val latFilter = SimpleKalmanFilter(q = 0.0001, r = 5.0)
     private val lonFilter = SimpleKalmanFilter(q = 0.0001, r = 5.0)
     private var kalmanInited = false
-    private var fixCount = 0  // počet obdržených fixů
+    private var fixCount = 0
 
     private val MIN_DIST_THRESHOLD = 0.5
     private val MAX_VALID_SPEED_KPH = 40.0
     private var firstFix = true
     private var currentPosition: GeoPoint? = null
 
+    // Handler to update duration every second
+    private val uiHandler = Handler(Looper.getMainLooper())
+    private val durationUpdater = object : Runnable {
+        override fun run() {
+            updateDuration()
+            uiHandler.postDelayed(this, 1000)
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         horseId = intent.getLongExtra("horseId", 0L)
-        horse = db.horseDao().getById(horseId)
-            ?: throw IllegalStateException("Horse not found")
+        horse = db.horseDao().getById(horseId) ?: throw IllegalStateException("Horse not found")
 
         Configuration.getInstance().userAgentValue = packageName
         Configuration.getInstance().load(this, getPreferences(MODE_PRIVATE))
@@ -74,27 +80,20 @@ class TrackingActivity : AppCompatActivity() {
         binding = ActivityTrackingBinding.inflate(layoutInflater)
         setContentView(binding.root)
         rideStartTime = System.currentTimeMillis()
+        uiHandler.post(durationUpdater)
 
-        // mapa
         binding.mapview.setMultiTouchControls(true)
         binding.mapview.controller.setZoom(18.0)
         binding.tvHorseName.text = "Kůň: ${horse.name}"
 
-        // středící tlačítko
-        binding.fabCenter.setOnClickListener {
-            currentPosition?.let { pt ->
-                binding.mapview.controller.animateTo(pt)
-            }
-        }
+        binding.fabCenter.setOnClickListener { currentPosition?.let { binding.mapview.controller.animateTo(it) } }
 
-        // GPS
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
         locationCallback = object : LocationCallback() {
             override fun onLocationResult(result: LocationResult) {
                 result.lastLocation?.let { loc ->
                     fixCount++
-                    // inicializovat filtr až na 5. fix
-                    if (!kalmanInited && fixCount >= 5) {
+                    if (!kalmanInited && fixCount >= 3) {
                         latFilter.init(loc.latitude)
                         lonFilter.init(loc.longitude)
                         kalmanInited = true
@@ -110,12 +109,10 @@ class TrackingActivity : AppCompatActivity() {
             }
         }
 
-        val requestPermission = registerForActivityResult(
-            ActivityResultContracts.RequestPermission()
-        ) { granted -> if (granted) startLocationUpdates() else Toast.makeText(this, "Bez GPS nelze sledovat trasu", Toast.LENGTH_LONG).show() }
-
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
-            != PackageManager.PERMISSION_GRANTED) {
+        val requestPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            if (granted) startLocationUpdates() else Toast.makeText(this, "Bez GPS nelze sledovat trasu", Toast.LENGTH_LONG).show()
+        }
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
             requestPermission.launch(Manifest.permission.ACCESS_FINE_LOCATION)
         } else {
             startLocationUpdates()
@@ -124,8 +121,17 @@ class TrackingActivity : AppCompatActivity() {
         binding.btnStop.setOnClickListener { stopAndSave() }
     }
 
-    override fun onResume() { super.onResume(); binding.mapview.onResume() }
-    override fun onPause()  { super.onPause(); binding.mapview.onPause(); fusedLocationClient.removeLocationUpdates(locationCallback) }
+    override fun onResume() {
+        super.onResume()
+        binding.mapview.onResume()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        binding.mapview.onPause()
+        fusedLocationClient.removeLocationUpdates(locationCallback)
+        uiHandler.removeCallbacks(durationUpdater)
+    }
 
     private fun startLocationUpdates() {
         val req = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 1000L)
@@ -143,24 +149,27 @@ class TrackingActivity : AppCompatActivity() {
             if (kph > MAX_VALID_SPEED_KPH || d < MIN_DIST_THRESHOLD) return
         }
         segments.add(pt to speedMps)
-        drawSegments(); showCurrentMarker(pt)
+        drawSegments()
+        showCurrentMarker(pt)
         if (firstFix) { binding.mapview.controller.animateTo(pt); firstFix = false }
-        updateStats(speedMps); updateDuration()
+        updateStats(speedMps)
     }
 
     private fun drawSegments() {
         binding.mapview.overlays.removeAll { it is Polyline }
-        for (i in 1 until segments.size) {
-            val (p0, _) = segments[i - 1]; val (p1, s1) = segments[i]
+        segments.zipWithNext { (p0, _), (p1, s1) ->
             val kph = s1 * 3.6
             val color = when {
-                kph < horse.walkSpeed*0.8 -> 0xFF888888.toInt()
-                kph < horse.walkSpeed      -> 0xFF006400.toInt()
-                kph < horse.trotSpeed      -> 0xFFCCCC00.toInt()
+                kph < horse.walkSpeed * 0.8 -> 0xFF888888.toInt()
+                kph < horse.walkSpeed       -> 0xFF006400.toInt()
+                kph < horse.trotSpeed       -> 0xFFCCCC00.toInt()
                 else                         -> 0xFF8B0000.toInt()
             }
-            Polyline().apply { addPoint(p0); addPoint(p1); width=8f; outlinePaint.color=color }
-                .also { binding.mapview.overlays.add(it) }
+            Polyline().apply {
+                addPoint(p0); addPoint(p1)
+                outlinePaint.strokeWidth = 8f
+                outlinePaint.color = color
+            }.also { binding.mapview.overlays.add(it) }
         }
         binding.mapview.invalidate()
     }
@@ -169,7 +178,8 @@ class TrackingActivity : AppCompatActivity() {
     private fun showCurrentMarker(p: GeoPoint) {
         currentMarker?.let { binding.mapview.overlays.remove(it) }
         Marker(binding.mapview).apply {
-            position = p; setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
+            position = p
+            setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
             icon = ContextCompat.getDrawable(this@TrackingActivity, org.osmdroid.library.R.drawable.marker_default)
             title = "Teď tady"
         }.also { currentMarker = it; binding.mapview.overlays.add(it) }
@@ -177,52 +187,80 @@ class TrackingActivity : AppCompatActivity() {
     }
 
     private fun updateStats(latestSpeed: Double) {
-        var dist=0.0; for(i in 1 until segments.size) dist+=segments[i-1].first.distanceToAsDouble(segments[i].first)
-        val total=segments.size.toDouble().coerceAtLeast(1.0)
-        val stand=segments.count{classifySpeed(it.second)==RideType.STAND}
-        val walk =segments.count{classifySpeed(it.second)==RideType.WALK}
-        val trot =segments.count{classifySpeed(it.second)==RideType.TROT}
-        val gall =segments.count{classifySpeed(it.second)==RideType.GALLOP}
-        val gait = when(classifySpeed(latestSpeed)){
-            RideType.STAND->"Stojí";RideType.WALK->"Krok";RideType.TROT->"Klus";else->"Cval"
+        var dist = 0.0
+        for (i in 1 until segments.size) dist += segments[i - 1].first.distanceToAsDouble(segments[i].first)
+        val total = segments.size.toDouble().coerceAtLeast(1.0)
+        val stand = segments.count { classifySpeed(it.second) == RideType.STAND }
+        val walk  = segments.count { classifySpeed(it.second) == RideType.WALK }
+        val trot  = segments.count { classifySpeed(it.second) == RideType.TROT }
+        val gall  = segments.count { classifySpeed(it.second) == RideType.GALLOP }
+        val gait = when (classifySpeed(latestSpeed)) {
+            RideType.STAND  -> "Stojí"
+            RideType.WALK   -> "Krok"
+            RideType.TROT   -> "Klus"
+            RideType.GALLOP -> "Cval"
         }
-        binding.tvCurrentGait.text="Chod: $gait"
-        binding.tvStats.text="Body: ${segments.size}  Vzdálenost: ${"%.1f".format(dist)} m"
-        val lpStand=binding.barStand.layoutParams as LinearLayout.LayoutParams
-        val lpWalk =binding.barWalk .layoutParams as LinearLayout.LayoutParams
-        val lpTrot =binding.barTrot .layoutParams as LinearLayout.LayoutParams
-        val lpGall =binding.barGallop.layoutParams as LinearLayout.LayoutParams
-        lpStand.weight=(stand/total).toFloat(); lpWalk.weight=(walk/total).toFloat()
-        lpTrot.weight=(trot/total).toFloat(); lpGall.weight=(gall/total).toFloat()
-        binding.barStand.layoutParams=lpStand; binding.barWalk.layoutParams=lpWalk
-        binding.barTrot.layoutParams=lpTrot; binding.barGallop.layoutParams=lpGall
+        binding.tvCurrentGait.text = "Chod: $gait"
+        binding.tvStats.text = "Body: ${segments.size}  Vzdálenost: ${"%.1f".format(dist)} m"
+        listOf(
+            binding.barStand to stand,
+            binding.barWalk  to walk,
+            binding.barTrot  to trot,
+            binding.barGallop to gall
+        ).forEach { (view, count) ->
+            val lp = view.layoutParams as LinearLayout.LayoutParams
+            lp.weight = (count / total).toFloat()
+            view.layoutParams = lp
+        }
     }
 
     private fun updateDuration() {
-        val elapsed=System.currentTimeMillis()-rideStartTime
-        val m=(elapsed/1000/60).toInt(); val s=(elapsed/1000%60).toInt()
-        binding.tvDuration.text=String.format("Doba: %02d:%02d",m,s)
+        val elapsed = System.currentTimeMillis() - rideStartTime
+        val m = (elapsed / 1000 / 60).toInt()
+        val s = (elapsed / 1000 % 60).toInt()
+        binding.tvDuration.text = String.format("Doba: %02d:%02d", m, s)
     }
 
     private fun stopAndSave() {
-        val coords=JSONArray().also{arr->segments.forEach{(p,_)->arr.put(JSONArray().put(p.longitude).put(p.latitude))}}
-        val geoJson=JSONObject().apply{put("type","LineString");put("coordinates",coords);put("timestamp",System.currentTimeMillis())}.toString()
-        var totalDist=0.0; for(i in 1 until segments.size) totalDist+=segments[i-1].first.distanceToAsDouble(segments[i].first)
-        val pts=segments.size.toDouble().coerceAtLeast(1.0)
-        val walkP=segments.count{classifySpeed(it.second)==RideType.WALK}/pts
-        val trotP=segments.count{classifySpeed(it.second)==RideType.TROT}/pts
-        val gallP=segments.count{classifySpeed(it.second)==RideType.GALLOP}/pts
-        val standP=segments.count{classifySpeed(it.second)==RideType.STAND}/pts
-        val ride=Ride(horseId=horseId,distance=totalDist,walkPortion=walkP,trotPortion=trotP,gallopPortion=gallP,geoJson=geoJson,timestamp=System.currentTimeMillis())
+        val coords = JSONArray().also { arr -> segments.forEach { (p, _) -> arr.put(JSONArray().put(p.longitude).put(p.latitude)) } }
+        val geoJson = JSONObject().apply {
+            put("type", "LineString")
+            put("coordinates", coords)
+            put("timestamp", System.currentTimeMillis())
+        }.toString()
+
+        var totalDist = 0.0
+        for (i in 1 until segments.size) totalDist += segments[i - 1].first.distanceToAsDouble(segments[i].first)
+
+        val pts = segments.size.toDouble().coerceAtLeast(1.0)
+        val walkP  = segments.count { classifySpeed(it.second) == RideType.WALK }   / pts
+        val trotP  = segments.count { classifySpeed(it.second) == RideType.TROT }   / pts
+        val gallP  = segments.count { classifySpeed(it.second) == RideType.GALLOP } / pts
+        val standP = segments.count { classifySpeed(it.second) == RideType.STAND }  / pts
+
+        val ride = Ride(
+            horseId       = horseId,
+            distance      = totalDist,
+            walkPortion   = walkP,
+            trotPortion   = trotP,
+            gallopPortion = gallP,
+            geoJson       = geoJson,
+            timestamp     = System.currentTimeMillis()
+        )
         db.rideDao().insert(ride)
-        Toast.makeText(this,"Jízda uložena: ${"%.1f".format(totalDist)} m, St:${"%.0f".format(standP*100)}% K:${"%.0f".format(walkP*100)}% Kl:${"%.0f".format(trotP*100)}% Cv:${"%.0f".format(gallP*100)}%",Toast.LENGTH_LONG).show()
-        startActivity(Intent(this,StatsActivity::class.java).putExtra("horseId",horseId))
+
+        Toast.makeText(
+            this,
+            "Jízda uložena: ${"%.1f".format(totalDist)} m, St:${"%.0f".format(standP*100)}% K:${"%.0f".format(walkP*100)}% Kl:${"%.0f".format(trotP*100)}% Cv:${"%.0f".format(gallP*100)}%",
+            Toast.LENGTH_LONG
+        ).show()
+
+        startActivity(Intent(this, StatsActivity::class.java).putExtra("horseId", horseId))
         finish()
     }
 
     private fun classifySpeed(mps: Double): RideType {
         val kph = mps * 3.6
-        // Pokud se skoro nehýbeme (<1 km/h), považujme za stání
         if (kph < 1.0) return RideType.STAND
         return when {
             kph < horse.walkSpeed * 0.8 -> RideType.STAND

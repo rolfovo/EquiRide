@@ -13,7 +13,7 @@ import androidx.room.PrimaryKey
         childColumns = ["horseId"],
         onDelete = ForeignKey.CASCADE
     )],
-    indices = [Index("horseId")]  // přidáme index na horseId
+    indices = [Index("horseId")]
 )
 data class Ride(
     @PrimaryKey(autoGenerate = true)
