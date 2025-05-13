@@ -20,6 +20,7 @@ data class Ride(
     val id: Long = 0,
     val horseId: Long,
     val timestamp: Long = System.currentTimeMillis(),
+    val durationSeconds: Long = 0,
     val distance: Double,
     val walkPortion: Double,
     val trotPortion: Double,

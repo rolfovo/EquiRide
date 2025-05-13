@@ -9,33 +9,51 @@ import com.example.equiride.databinding.ItemRideBinding
 import java.text.SimpleDateFormat
 import java.util.*
 
-class RideListAdapter :
-    ListAdapter<Ride, RideListAdapter.VH>(object : DiffUtil.ItemCallback<Ride>() {
-        override fun areItemsTheSame(a: Ride, b: Ride) = a.id == b.id
-        override fun areContentsTheSame(a: Ride, b: Ride) = a == b
-    }) {
+class RideListAdapter : ListAdapter<Ride, RideListAdapter.ViewHolder>(DIFF) {
 
-    private val fmt = SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault())
+    private val dateFmt = SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault())
+    private val dfPct = java.text.DecimalFormat("0")
 
-    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int) =
-        VH(ItemRideBinding.inflate(LayoutInflater.from(parent.context), parent, false))
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
+        val binding = ItemRideBinding.inflate(
+            LayoutInflater.from(parent.context),
+            parent,
+            false
+        )
+        return ViewHolder(binding)
+    }
 
-    override fun onBindViewHolder(holder: VH, position: Int) =
+    override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         holder.bind(getItem(position))
+    }
 
-    inner class VH(private val vb: ItemRideBinding) : RecyclerView.ViewHolder(vb.root) {
-        fun bind(r: Ride) {
-            vb.tvDate.text = fmt.format(Date(r.timestamp))
-            val distKm = r.distance / 1000.0
-            val dur = formatDuration(r.timestamp, r) // implementujte převod timestamp → duration
-            vb.tvSummary.text = "D: ${"%.2f".format(distKm)} km, T: $dur, " +
-                    "K:${"%.0f".format(r.walkPortion*100)}% Kl:${"%.0f".format(r.trotPortion*100)}% Cv:${"%.0f".format(r.gallopPortion*100)}%"
+    inner class ViewHolder(private val vb: ItemRideBinding) :
+        RecyclerView.ViewHolder(vb.root) {
+
+        fun bind(ride: Ride) {
+            // 1) Timestamp
+            vb.tvTimestamp.text = dateFmt.format(Date(ride.timestamp))
+
+            // 2) Duration (přidali jsme sloupec durationSeconds do RIde)
+            val minutes = ride.durationSeconds / 60
+            val seconds = ride.durationSeconds % 60
+            vb.tvDuration.text = String.format("%02d:%02d", minutes, seconds)
+
+            // 3) Distance
+            vb.tvDistance.text = "D: ${"%.1f".format(ride.distance)} m"
+
+            // 4) Portions
+            val walkPct  = dfPct.format(ride.walkPortion  * 100)
+            val trotPct  = dfPct.format(ride.trotPortion  * 100)
+            val gallPct  = dfPct.format(ride.gallopPortion * 100)
+            vb.tvPortions.text = "K: $walkPct%   Kl: $trotPct%   Cv: $gallPct%"
         }
     }
 
-    private fun formatDuration(startTs: Long, r: Ride): String {
-        // Pokud zaznamenáváte dobu do Ride.timestamp + ukládáte stopy,
-        // můžete sem napojit uložené duration. Jinak jako placeholder:
-        return "--:--"
+    companion object {
+        private val DIFF = object : DiffUtil.ItemCallback<Ride>() {
+            override fun areItemsTheSame(old: Ride, new: Ride) = old.id == new.id
+            override fun areContentsTheSame(old: Ride, new: Ride) = old == new
+        }
     }
 }

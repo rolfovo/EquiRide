@@ -93,7 +93,7 @@ class TrackingActivity : AppCompatActivity() {
             override fun onLocationResult(result: LocationResult) {
                 result.lastLocation?.let { loc ->
                     fixCount++
-                    if (!kalmanInited && fixCount >= 2) {
+                    if (!kalmanInited && fixCount >= 5) {
                         latFilter.init(loc.latitude)
                         lonFilter.init(loc.longitude)
                         kalmanInited = true
@@ -201,15 +201,15 @@ class TrackingActivity : AppCompatActivity() {
             RideType.GALLOP -> "Cval"
         }
         binding.tvCurrentGait.text = "Chod: $gait"
-        binding.tvStats.text = "Body: ${segments.size}  Vzdálenost: ${"%.1f".format(dist)} m"
+        binding.tvStats.text       = "Body: ${segments.size}  Vzdálenost: ${"%.1f".format(dist)} m"
         listOf(
-            binding.barStand to stand,
-            binding.barWalk  to walk,
-            binding.barTrot  to trot,
+            binding.barStand  to stand,
+            binding.barWalk   to walk,
+            binding.barTrot   to trot,
             binding.barGallop to gall
-        ).forEach { (view, count) ->
+        ).forEach { (view, cnt) ->
             val lp = view.layoutParams as LinearLayout.LayoutParams
-            lp.weight = (count / total).toFloat()
+            lp.weight = (cnt / total).toFloat()
             view.layoutParams = lp
         }
     }
@@ -222,36 +222,53 @@ class TrackingActivity : AppCompatActivity() {
     }
 
     private fun stopAndSave() {
-        val coords = JSONArray().also { arr -> segments.forEach { (p, _) -> arr.put(JSONArray().put(p.longitude).put(p.latitude)) } }
+        val rideEnd = System.currentTimeMillis()
+        val durationSec = (rideEnd - rideStartTime) / 1000
+
+        // připravit GeoJSON
+        val coords = JSONArray().also { arr ->
+            segments.forEach { (p, _) ->
+                arr.put(JSONArray().put(p.longitude).put(p.latitude))
+            }
+        }
         val geoJson = JSONObject().apply {
             put("type", "LineString")
             put("coordinates", coords)
             put("timestamp", System.currentTimeMillis())
         }.toString()
 
+        // spočítat vzdálenost
         var totalDist = 0.0
-        for (i in 1 until segments.size) totalDist += segments[i - 1].first.distanceToAsDouble(segments[i].first)
+        for (i in 1 until segments.size) {
+            totalDist += segments[i - 1].first.distanceToAsDouble(segments[i].first)
+        }
 
+        // spočítat podíly
         val pts = segments.size.toDouble().coerceAtLeast(1.0)
-        val walkP  = segments.count { classifySpeed(it.second) == RideType.WALK }   / pts
-        val trotP  = segments.count { classifySpeed(it.second) == RideType.TROT }   / pts
+        val walkP  = segments.count { classifySpeed(it.second) == RideType.WALK   } / pts
+        val trotP  = segments.count { classifySpeed(it.second) == RideType.TROT   } / pts
         val gallP  = segments.count { classifySpeed(it.second) == RideType.GALLOP } / pts
-        val standP = segments.count { classifySpeed(it.second) == RideType.STAND }  / pts
+        val standP = segments.count { classifySpeed(it.second) == RideType.STAND  } / pts
 
+        // vytvořit a uložit jízdu s délkou
         val ride = Ride(
-            horseId       = horseId,
-            distance      = totalDist,
-            walkPortion   = walkP,
-            trotPortion   = trotP,
-            gallopPortion = gallP,
-            geoJson       = geoJson,
-            timestamp     = System.currentTimeMillis()
+            horseId         = horseId,
+            timestamp       = rideStartTime,
+            durationSeconds = durationSec,
+            distance        = totalDist,
+            walkPortion     = walkP,
+            trotPortion     = trotP,
+            gallopPortion   = gallP,
+            geoJson         = geoJson
         )
         db.rideDao().insert(ride)
 
         Toast.makeText(
             this,
-            "Jízda uložena: ${"%.1f".format(totalDist)} m, St:${"%.0f".format(standP*100)}% K:${"%.0f".format(walkP*100)}% Kl:${"%.0f".format(trotP*100)}% Cv:${"%.0f".format(gallP*100)}%",
+            "Jízda uložena: ${"%.1f".format(totalDist)} m, " +
+                    "St:${"%.0f".format(standP*100)}% K:${"%.0f".format(walkP*100)}% " +
+                    "Kl:${"%.0f".format(trotP*100)}% Cv:${"%.0f".format(gallP*100)}% " +
+                    "Trvání: ${String.format("%02d:%02d", durationSec/60, durationSec%60)}",
             Toast.LENGTH_LONG
         ).show()
 

@@ -32,7 +32,7 @@ public final class RideDao_Impl implements RideDao {
     this.__insertionAdapterOfRide = new EntityInsertionAdapter<Ride>(__db) {
       @Override
       public String createQuery() {
-        return "INSERT OR ABORT INTO `rides` (`id`,`horseId`,`timestamp`,`distance`,`walkPortion`,`trotPortion`,`gallopPortion`,`geoJson`) VALUES (nullif(?, 0),?,?,?,?,?,?,?)";
+        return "INSERT OR ABORT INTO `rides` (`id`,`horseId`,`timestamp`,`durationSeconds`,`distance`,`walkPortion`,`trotPortion`,`gallopPortion`,`geoJson`) VALUES (nullif(?, 0),?,?,?,?,?,?,?,?)";
       }
 
       @Override
@@ -40,14 +40,15 @@ public final class RideDao_Impl implements RideDao {
         stmt.bindLong(1, value.getId());
         stmt.bindLong(2, value.getHorseId());
         stmt.bindLong(3, value.getTimestamp());
-        stmt.bindDouble(4, value.getDistance());
-        stmt.bindDouble(5, value.getWalkPortion());
-        stmt.bindDouble(6, value.getTrotPortion());
-        stmt.bindDouble(7, value.getGallopPortion());
+        stmt.bindLong(4, value.getDurationSeconds());
+        stmt.bindDouble(5, value.getDistance());
+        stmt.bindDouble(6, value.getWalkPortion());
+        stmt.bindDouble(7, value.getTrotPortion());
+        stmt.bindDouble(8, value.getGallopPortion());
         if (value.getGeoJson() == null) {
-          stmt.bindNull(8);
+          stmt.bindNull(9);
         } else {
-          stmt.bindString(8, value.getGeoJson());
+          stmt.bindString(9, value.getGeoJson());
         }
       }
     };
@@ -102,6 +103,7 @@ public final class RideDao_Impl implements RideDao {
           final int _cursorIndexOfId = CursorUtil.getColumnIndexOrThrow(_cursor, "id");
           final int _cursorIndexOfHorseId = CursorUtil.getColumnIndexOrThrow(_cursor, "horseId");
           final int _cursorIndexOfTimestamp = CursorUtil.getColumnIndexOrThrow(_cursor, "timestamp");
+          final int _cursorIndexOfDurationSeconds = CursorUtil.getColumnIndexOrThrow(_cursor, "durationSeconds");
           final int _cursorIndexOfDistance = CursorUtil.getColumnIndexOrThrow(_cursor, "distance");
           final int _cursorIndexOfWalkPortion = CursorUtil.getColumnIndexOrThrow(_cursor, "walkPortion");
           final int _cursorIndexOfTrotPortion = CursorUtil.getColumnIndexOrThrow(_cursor, "trotPortion");
@@ -116,6 +118,8 @@ public final class RideDao_Impl implements RideDao {
             _tmpHorseId = _cursor.getLong(_cursorIndexOfHorseId);
             final long _tmpTimestamp;
             _tmpTimestamp = _cursor.getLong(_cursorIndexOfTimestamp);
+            final long _tmpDurationSeconds;
+            _tmpDurationSeconds = _cursor.getLong(_cursorIndexOfDurationSeconds);
             final double _tmpDistance;
             _tmpDistance = _cursor.getDouble(_cursorIndexOfDistance);
             final double _tmpWalkPortion;
@@ -130,7 +134,7 @@ public final class RideDao_Impl implements RideDao {
             } else {
               _tmpGeoJson = _cursor.getString(_cursorIndexOfGeoJson);
             }
-            _item = new Ride(_tmpId,_tmpHorseId,_tmpTimestamp,_tmpDistance,_tmpWalkPortion,_tmpTrotPortion,_tmpGallopPortion,_tmpGeoJson);
+            _item = new Ride(_tmpId,_tmpHorseId,_tmpTimestamp,_tmpDurationSeconds,_tmpDistance,_tmpWalkPortion,_tmpTrotPortion,_tmpGallopPortion,_tmpGeoJson);
             _result.add(_item);
           }
           return _result;
