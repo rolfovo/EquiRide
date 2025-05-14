@@ -62,12 +62,13 @@ public final class RideDao_Impl implements RideDao {
   }
 
   @Override
-  public void insert(final Ride r) {
+  public long insert(final Ride ride) {
     __db.assertNotSuspendingTransaction();
     __db.beginTransaction();
     try {
-      __insertionAdapterOfRide.insert(r);
+      long _result = __insertionAdapterOfRide.insertAndReturnId(ride);
       __db.setTransactionSuccessful();
+      return _result;
     } finally {
       __db.endTransaction();
     }

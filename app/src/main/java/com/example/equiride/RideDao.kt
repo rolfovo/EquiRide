@@ -11,9 +11,8 @@ interface RideDao {
     fun getByHorse(horseId: Long): LiveData<List<Ride>>
 
     @Insert
-    fun insert(r: Ride)
+    fun insert(ride: Ride): Long
 
-    // ← Přidej tuto metodu:
     @Query("DELETE FROM rides WHERE horseId = :horseId")
     fun deleteByHorse(horseId: Long)
 }

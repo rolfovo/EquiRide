@@ -1,46 +1,74 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/root"
     android:orientation="vertical"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:padding="16dp">
 
-    <!-- 1) Graf poměrů chodu -->
+    <!-- PieChart bez custom attrs -->
     <com.github.mikephil.charting.charts.PieChart
         android:id="@+id/pieChart"
         android:layout_width="match_parent"
-        android:layout_height="200dp"
-        android:layout_marginBottom="16dp"/>
+        android:layout_height="250dp"
+        android:layout_marginTop="8dp" />
 
-    <!-- 2) Statistické souhrny -->
+    <!-- Vlastní legenda -->
+    <LinearLayout
+        android:id="@+id/legendContainer"
+        android:orientation="horizontal"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp">
+
+        <View android:layout_width="16dp" android:layout_height="16dp" android:background="#006400"/>
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text=" Krok  " android:textSize="14sp"/>
+
+        <View android:layout_width="16dp" android:layout_height="16dp" android:background="#CCCC00"/>
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text=" Klus  " android:textSize="14sp"/>
+
+        <View android:layout_width="16dp" android:layout_height="16dp" android:background="#8B0000"/>
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text=" Cval" android:textSize="14sp"/>
+    </LinearLayout>
+
+    <!-- Souhrn -->
     <TextView
         android:id="@+id/tvTotalRides"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Počet jízd: 0"
-        android:textSize="14sp" />
+        android:textSize="16sp"
+        android:layout_marginTop="12dp"/>
 
     <TextView
         android:id="@+id/tvTotalDist"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Celkem: 0.0 m"
-        android:textSize="14sp"
+        android:text="Celkem: 0,0 m"
+        android:textSize="16sp"
         android:layout_marginTop="4dp"/>
 
-    <!-- 3) Seznam posledních jízd -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#DDDDDD"
+        android:layout_marginVertical="12dp"/>
+
+    <!-- Seznam jízd -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rvRides"
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1"
-        android:layout_marginTop="16dp"/>
+        android:layout_weight="1"/>
 
-    <!-- 4) Reset -->
+    <!-- Reset tlačítko -->
     <Button
         android:id="@+id/btnReset"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Reset"
-        android:layout_marginTop="8dp"/>
+        android:text="RESET"
+        android:layout_marginTop="12dp"/>
 </LinearLayout>
