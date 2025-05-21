@@ -1,0 +1,9 @@
+image:
+  file: .gitpod.Dockerfile
+
+tasks:
+  - name: Setup EquiRide Build Env
+    init: |
+      echo "sdk.dir=/home/gitpod/android-sdk" > local.properties
+      chmod +x gradlew
+    command: ./gradlew assembleDebug
